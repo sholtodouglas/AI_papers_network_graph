@@ -21,7 +21,7 @@
 <script
     type="text/javascript"
     src="http://code.jquery.com/jquery-2.1.0.js"
-    
+
   ></script>
 
 
@@ -48,7 +48,7 @@ svg.call(d3.zoom().on('zoom', zoomed));
 var color = d3.scaleOrdinal(d3.schemeCategory20);
 
 
-const simulationDurationInMs = 5000; // 20 seconds
+const simulationDurationInMs = 5000*4; // 20 seconds
 
 let startTime = Date.now();
 let endTime = startTime + simulationDurationInMs;
@@ -83,7 +83,7 @@ var container = svg.append('g');
 var toggle = 0;
 
 
-d3.json("g25.json", function(error, graph) {
+d3.json("g20.json", function(error, graph) {
   if (error) throw error;
 
   // Make object of all neighboring nodes.
@@ -100,11 +100,11 @@ d3.json("g25.json", function(error, graph) {
 
   // Linear scale for degree centrality.
   var degreeSize = d3.scaleLinear()
-    .domain([d3.min(graph.nodes, function(d) {return d.degree; }),d3.max(graph.nodes, function(d) {return d.degree; })])
+    .domain([d3.min(graph.nodes, function(d) {return d.size; }),d3.max(graph.nodes, function(d) {return 2*d.size; })])
     .range([8,25]);
 
   // Collision detection based on degree centrality.
-  simulation.force("collide", d3.forceCollide().radius( function (d) { return degreeSize(d.degree); }));
+  simulation.force("collide", d3.forceCollide().radius( function (d) { return degreeSize(d.size); }));
 
   var link = container.append("g")
       .attr("class", "links")
@@ -121,7 +121,7 @@ d3.json("g25.json", function(error, graph) {
     // Calculate degree centrality within JavaScript.
     //.attr("r", function(d, i) { count = 0; graph.links.forEach(function(l) { if (l.source == i || l.target == i) { count += 1;}; }); return size(count);})
     // Use degree centrality from NetworkX in json.
-    .attr('r', function(d, i) { return degreeSize(d.degree); })
+    .attr('r', function(d, i) { return degreeSize(d.size); })
     // Color by group, a result of modularity calculation in NetworkX.
       .attr("fill", function(d) { return color(d.group); })
       .attr('class', 'node')
@@ -211,7 +211,7 @@ d3.json("g25.json", function(error, graph) {
     .attr('id', 'threshold')
     .style('width', '50%')
     .style('display', 'block')
-    .on('input', function () { 
+    .on('input', function () {
       var threshold = this.value;
 
       d3.select('label').text(threshold);
@@ -243,12 +243,12 @@ d3.json("g25.json", function(error, graph) {
   // Accounts for node collision.
   var dropdown = d3.select('body').append('div')
     .append('select')
-    .on('change', function() { 
+    .on('change', function() {
       var centrality = this.value;
       var centralitySize = d3.scaleLinear()
         .domain([d3.min(graph.nodes, function(d) { return d[centrality]; }), d3.max(graph.nodes, function(d) { return d[centrality]; })])
         .range([8,25]);
-      node.attr('r', function(d) { return centralitySize(d[centrality]); } );  
+      node.attr('r', function(d) { return centralitySize(d[centrality]); } );
       // Recalculate collision detection based on selected centrality.
       simulation.force("collide", d3.forceCollide().radius( function (d) { return centralitySize(d[centrality]); }));
       simulation.alphaTarget(0.1).restart();
@@ -274,7 +274,7 @@ d3.json("g25.json", function(error, graph) {
           source: optArray
       });
   });
-  
+
 
 });
 
