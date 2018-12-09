@@ -46,12 +46,15 @@ svg.call(d3.zoom().on('zoom', zoomed));
 
 
 var color = d3.scaleOrdinal(d3.schemeCategory20);
+console.log(color)
 
 
-const simulationDurationInMs = 5000; // 20 seconds
+const simulationDurationInMs = 200000; // 200 seconds
+const vizafter = 50000
 
 let startTime = Date.now();
 let endTime = startTime + simulationDurationInMs;
+let vizTime = startTime + vizafter
 
 
 
@@ -66,28 +69,48 @@ var simulation = d3.forceSimulation()
 
 var container = svg.append('g');
 
-// // Create form for search (see function below).
-// var search = d3.select("body").append('form').attr('onsubmit', 'return false;');
+var marker = svg.append("svg:defs").selectAll("marker")
+    .data(["end"])      // Different link/path types can be defined here
+  .enter().append("svg:marker")    // This section adds in the arrows
+    .attr("id", String)
+    .attr("viewBox", "0 -5 10 10")
+    .attr("refX", 15)
+    .attr("refY", 0.5)
+    .attr("markerWidth", 10)
+    .attr("markerHeight", 10)
+    .attr("orient", "auto")
+  .append("svg:path")
+    .attr("d", "M0,-5L10,0L0,5");
 
-// var box = search.append('input')
-//   .attr('type', 'text')
-//   .attr('id', 'searchTerm')
-//   .attr('placeholder', 'Type to search...');
 
-// var button = search.append('input')
-//   .attr('type', 'button')
-//   .attr('value', 'Search')
-//   .on('click', function () { searchNodes(); });
 
 // Toggle for ego networks on click (below).
 var toggle = 0;
 
 
-d3.json("g25.json", function(error, graph) {
+// Make object of all neighboring nodes. Put up here so it is global
+  var linkedByIndex = {};
+
+
+
+// color links red if our selected node is the source, and blue if it is the target
+// the refence is the target, so blue means is referenced by, red means references
+function linkColour(d,o){
+
+  if(d.title==o.source.title){
+    return "#ff0000"; // red
+  } else if (d.title==o.target.title) {
+    return "#0066ff"; // blue
+  } else {
+    return "#999";
+  }
+
+}
+
+d3.json("g2000.json", function(error, graph) {
   if (error) throw error;
 
-  // Make object of all neighboring nodes.
-  var linkedByIndex = {};
+  
   graph.links.forEach(function(d) {
     linkedByIndex[d.source + ',' + d.target] = 1;
     linkedByIndex[d.target + ',' + d.source] = 1;
@@ -95,7 +118,7 @@ d3.json("g25.json", function(error, graph) {
 
   // A function to test if two nodes are neighboring.
   function neighboring(a, b) {
-    return linkedByIndex[a.title + ',' + b.title];
+    return linkedByIndex[a.id + ',' + b.id];
   }
 
   // Linear scale for degree centrality.
@@ -111,6 +134,7 @@ d3.json("g25.json", function(error, graph) {
     .selectAll("line")
     .data(graph.links, function(d) { return d.source + ", " + d.target;})
     .enter().append("line")
+    //.attr("marker-end", "url(#end)") // include to add ARROWS!
       .attr('class', 'link');
 
   var node = container.append("g")
@@ -132,17 +156,26 @@ d3.json("g25.json", function(error, graph) {
 
             d = d3.select(this).node().__data__;
 
+
             node.style("opacity", function (o) {
 
-                return neighboring(d, o) | neighboring(o, d) ? 1 : 0.1;
+                return neighboring(d, o) | neighboring(o, d) ? 0.9 : 0.1;
 
             });
 
             link.style("opacity", function (o) {
 
-                return d.title==o.source.title | d.title==o.target.title ? 1 : 0.1;
+                return d.title==o.source.title | d.title==o.target.title ? 0.9 : 0.1;
 
             });
+
+            link.style("stroke", function (o) {
+
+                return linkColour(d,o);
+
+            });
+
+            
 
             d3.select(this).style('opacity', 1);
 
@@ -157,6 +190,7 @@ d3.json("g25.json", function(error, graph) {
         node.style("opacity", 1);
 
         link.style("opacity", 1);
+        link.style("stroke", "#999");
 
         toggle = 0;
         }
@@ -177,6 +211,7 @@ d3.json("g25.json", function(error, graph) {
       .links(graph.links);
 
   function ticked() {
+    
     link
         .attr("x1", function(d) { return d.source.x; })
         .attr("y1", function(d) { return d.source.y; })
@@ -187,7 +222,7 @@ d3.json("g25.json", function(error, graph) {
         .attr("cx", function(d) { return d.x; })
         .attr("cy", function(d) { return d.y; });
 
-
+    
     if (Date.now() < endTime) {
         /*update the simulation*/
           console.log("Cont")
@@ -239,28 +274,6 @@ d3.json("g25.json", function(error, graph) {
 
     });
 
-  // A dropdown menu with three different centrality measures, calculated in NetworkX.
-  // Accounts for node collision.
-  var dropdown = d3.select('body').append('div')
-    .append('select')
-    .on('change', function() { 
-      var centrality = this.value;
-      var centralitySize = d3.scaleLinear()
-        .domain([d3.min(graph.nodes, function(d) { return d[centrality]; }), d3.max(graph.nodes, function(d) { return d[centrality]; })])
-        .range([8,25]);
-      node.attr('r', function(d) { return centralitySize(d[centrality]); } );  
-      // Recalculate collision detection based on selected centrality.
-      simulation.force("collide", d3.forceCollide().radius( function (d) { return centralitySize(d[centrality]); }));
-      simulation.alphaTarget(0.1).restart();
-    });
-
-  dropdown.selectAll('option')
-    .data(['Degree Centrality', 'Betweenness Centrality', 'Eigenvector Centrality'])
-    .enter().append('option')
-    .attr('value', function(d) { return d.split(' ')[0].toLowerCase(); })
-    .text(function(d) { return d; });
-
-
 
     var optArray = [];
   for (var i = 0; i < graph.nodes.length - 1; i++) {
@@ -303,39 +316,66 @@ function zoomed() {
 }
 
 
+function neighboring(a, b) {
+    return linkedByIndex[a.id + ',' + b.id];
+  }
 
-// Search for nodes by making all unmatched nodes temporarily transparent.
-// function searchNode() {
-//   var term = document.getElementById('search').value;
-//   var selected = svg.selectAll('.node').filter(function (d, i) {
-//     return d.title.toLowerCase().search(term.toLowerCase()) == -1;
-//   });
-//   selected.style('opacity', '0');
-//   var link = svg.selectAll('.link');
-//   link.style('stroke-opacity', '0');
-//   d3.selectAll('.node').transition()
-//     .duration(5000)
-//     .style('opacity', '1');
-//   d3.selectAll('.link').transition().duration(5000).style('stroke-opacity', '0.6');
-// }
+  function reColorGraph() {
+    var node = svg.selectAll(".node");
+    var link = svg.selectAll(".link")
+    node.style("opacity", "1.0");
+    link.style("opacity", "1.0");
+    link.style("stroke", "#999");
+
+    toggle = 0; // for interoperability with the click select
+
+  }
+
+
 
 function searchNode() {
     //find the node
     var selectedVal = document.getElementById('search').value;
     var node = svg.selectAll(".node");
+    var link = svg.selectAll(".link")
     if (selectedVal == "none") {
         node.style("stroke", "white").style("stroke-width", "1");
     } else {
         var selected = svg.selectAll('.node').filter(function (d, i) {
-            return d.title != selectedVal;
+            return d.title == selectedVal;
             //return d.title.toLowerCase().search(selectedVal.toLowerCase()) == -1;
         });
-        selected.style("opacity", "0.1");
-        var link = svg.selectAll(".link")
-        link.style("opacity", "0.1");
-        d3.selectAll(".node, .link").transition()
-            .duration(4000)
-            .style("opacity", 1);
+        //selected.style("opacity", "0.1");
+
+        //////////////
+        d = selected.node().__data__;
+        
+        
+        node.style("opacity", function (o) {
+
+            return neighboring(d, o) | neighboring(o, d) ? 0.9 : 0.1;
+
+        });
+
+        link.style("opacity", function (o) {
+
+            return d.title==o.source.title | d.title==o.target.title ? 0.9 : 0.1;
+
+        });
+
+        link.style("stroke", function (o) {
+
+                return linkColour(d,o);
+
+        });
+
+        selected.style('opacity', 1);
+
+        toggle = 1;
+
+
+        setTimeout(reColorGraph, 4000);
+        
     }
 }
 

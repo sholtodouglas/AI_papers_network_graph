@@ -10,7 +10,7 @@
   <div id="graph"></div>
 
   <script>
-    fetch('g6.json').then(res => res.json()).then(data => {
+    fetch('g2000.json').then(res => res.json()).then(data => {
       const elem = document.getElementById('graph');
 
       const Graph = ForceGraph()(elem)
@@ -19,7 +19,7 @@
         // .nodeAutoColorBy('user')
         .nodeLabel(node => `${node.title}`)
         .linkColor(() => 'rgba(255,255,255,0.2)')
-        //.linkDirectionalParticles(1)
+        .linkDirectionalParticles(1)
         .warmupTicks(20)
         .cooldownTicks(0)
         .onNodeHover(node => elem.style.cursor = node ? 'pointer' : null)
