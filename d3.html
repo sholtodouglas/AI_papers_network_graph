@@ -1,4 +1,5 @@
 
+
 <!DOCTYPE html>
 <meta charset="utf-8">
 <style>
@@ -21,7 +22,7 @@
 <script
     type="text/javascript"
     src="http://code.jquery.com/jquery-2.1.0.js"
-    
+
   ></script>
 
 
@@ -89,7 +90,7 @@ var toggle = 0;
 
 
 // Make object of all neighboring nodes. Put up here so it is global
-  var linkedByIndex = {};
+var linkedByIndex = {};
 
 
 
@@ -107,10 +108,10 @@ function linkColour(d,o){
 
 }
 
-d3.json("g2000.json", function(error, graph) {
+d3.json("g2000_clustered_strong.json", function(error, graph) {
   if (error) throw error;
 
-  
+
   graph.links.forEach(function(d) {
     linkedByIndex[d.source + ',' + d.target] = 1;
     linkedByIndex[d.target + ',' + d.source] = 1;
@@ -145,7 +146,7 @@ d3.json("g2000.json", function(error, graph) {
     // Calculate degree centrality within JavaScript.
     //.attr("r", function(d, i) { count = 0; graph.links.forEach(function(l) { if (l.source == i || l.target == i) { count += 1;}; }); return size(count);})
     // Use degree centrality from NetworkX in json.
-    .attr('r', function(d, i) { return degreeSize(d.degree); })
+    .attr('r', function(d, i) { return (degreeSize(d.degree)); })
     // Color by group, a result of modularity calculation in NetworkX.
       .attr("fill", function(d) { return color(d.group); })
       .attr('class', 'node')
@@ -175,7 +176,7 @@ d3.json("g2000.json", function(error, graph) {
 
             });
 
-            
+
 
             d3.select(this).style('opacity', 1);
 
@@ -211,7 +212,7 @@ d3.json("g2000.json", function(error, graph) {
       .links(graph.links);
 
   function ticked() {
-    
+
     link
         .attr("x1", function(d) { return d.source.x; })
         .attr("y1", function(d) { return d.source.y; })
@@ -222,7 +223,7 @@ d3.json("g2000.json", function(error, graph) {
         .attr("cx", function(d) { return d.x; })
         .attr("cy", function(d) { return d.y; });
 
-    
+
     if (Date.now() < endTime) {
         /*update the simulation*/
           console.log("Cont")
@@ -246,7 +247,7 @@ d3.json("g2000.json", function(error, graph) {
     .attr('id', 'threshold')
     .style('width', '50%')
     .style('display', 'block')
-    .on('input', function () { 
+    .on('input', function () {
       var threshold = this.value;
 
       d3.select('label').text(threshold);
@@ -287,7 +288,7 @@ d3.json("g2000.json", function(error, graph) {
           source: optArray
       });
   });
-  
+
 
 });
 
@@ -349,8 +350,8 @@ function searchNode() {
 
         //////////////
         d = selected.node().__data__;
-        
-        
+
+
         node.style("opacity", function (o) {
 
             return neighboring(d, o) | neighboring(o, d) ? 0.9 : 0.1;
@@ -375,7 +376,7 @@ function searchNode() {
 
 
         setTimeout(reColorGraph, 4000);
-        
+
     }
 }
 
